@@ -26,10 +26,10 @@ data.frame(table(isn_d$Cts)) %>%
 ggplot(isn_d,aes(x=Month,y=Spots)) +geom_col() + facet_wrap(~Year) +
   ggtitle("Summary of ISN by Year and Month:2009 - 2019") +ylab("Internation Sunbspot Number")
 ## Spots vs Sd
-ggplot(isn_d,aes(x=Sd,y=Spots)) +geom_point() + facet_wrap(~Year) +
-  ggtitle("Summary of SD vs ISN by Year and Month:2009 - 2019") +
-   ylab("Internation Sunbspot Number") + xlab("Standard Deviation") +
-  geom_smooth(method="glm")
+ggplot(isn_d,aes(x=Obs,y=Sd)) +geom_col() + facet_wrap(~Year) +
+  ggtitle("Summary of SD vs Obs by Year and Month:2009 - 2019") +
+   ylab("# of Observations") + xlab("Standard Deviation") +
+  coord_flip()
 ##
 # ggplot(isn_d,aes(x=Month,y=Spots)) +geom_col() + facet_wrap(~Cts) +
 #   ggtitle("Summary of SD vs ISN by Year and Month:2009 - 2019") +
@@ -54,4 +54,6 @@ data.frame(table(isn$Cts)) %>%
   ggplot(aes(x=Var1,y=Freq,fill=Var1)) +
   geom_col() + labs(title="Decade of the 60's")
 
-
+isn_d <-isn %>% filter(Year >=2009 & Year <=2019) %>% select(Year,Month,Spots,Sd,Cts,Obs)
+  ggplot(data=isn_d,aes(x=Cts , fill=Cts ))+
+  geom_histogram(stat="count") + labs(title="Ratio of Days w/wo Spots: 2009-2019") + facet_wrap(~Year)

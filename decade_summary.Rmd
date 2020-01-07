@@ -14,7 +14,7 @@ library(prophet)
 ```{r import_data,echo=TRUE}
 rm(list=ls())
 ## Read Data: 
-isn<-fread("http://sidc.be/silso/DATA/SN_d_tot_V2.0.csv",sep=";")
+isn <-fread("http://sidc.be/silso/DATA/SN_d_tot_V2.0.csv",sep=";")
 colnames(isn) <- c("Year","Month","Day", "Fdate","Spots", "Sd","Obs" ,"Defin" )
 # Add an explicit date feature to the data frame.
 isn$Ymd <- as.Date(paste(isn$Year, isn$Month, 
@@ -26,23 +26,16 @@ data.frame(table(isn$Cts)) %>%
   ggplot(aes(x=Var1,y=Freq,fill=Var1)) +
   geom_col() + labs(title="Ratio of Days w/wo Spots: 1850-2019")
 
-barplot(table(isn$Cts),main="Total Days with/out Spots")
-## Begin Decade calc: 2009 - 2019
-isn_d <- isn %>% filter(Year >=2009 &  Year <=2019) %>% select(Year,Month,Spots,Sd,Cts,Obs)
-ggplot(isn_d,aes(x=Month,y=Spots)) +geom_col() + facet_wrap(~Year) +
-  ggtitle("Summary of ISN by Year and Month:2009 - 2019") +ylab("Internation Sunbspot Number")
+isn_d <- isn %>% filter(Year >=2009 & Year <=2019) %>% select(Year,Month,Spots,Sd,Cts,Obs)
+  ggplot(data=isn_d,aes(x=Cts , fill=Cts ))+
+  geom_histogram(stat="count") + labs(title="Ratio of Days w/wo Spots: 2009-2019") + facet_wrap(~Year)
+#Begin Decade calc: 2009 - 2019
+
 ## Spots vs Sd
-ggplot(isn_d,aes(x=Sd,y=Spots)) +geom_point() + facet_wrap(~Year) +
+ggplot(data=isn_d,aes(x=Sd,y=Spots)) +geom_point() + facet_wrap(~Year) +
   ggtitle("Summary of SD vs ISN by Year and Month:2009 - 2019") +
    ylab("Internation Sunbspot Number") + xlab("Standard Deviation") +
   geom_smooth(method="glm")
-##
-# ggplot(isn_d,aes(x=Month,y=Spots)) +geom_col() + facet_wrap(~Cts) +
-#   ggtitle("Summary of SD vs ISN by Year and Month:2009 - 2019") +
-#   ylab("Internation Sunbspot Number") + xlab("Standard Deviation") +
-#   geom_smooth(method="glm")
-## Begin Prophet Prediction
-
 ```
 ```{r Prophet, echo=TRUE}
 df<-isn[Ymd >="1850-01-01" ,.(Ymd,Spots)]
@@ -61,3 +54,27 @@ forecast1 <- forecast[ds >="2019-01-01"  &  ds <="2022-12-31",]
 ggplot(data=forecast1,aes(x=ds,y=yhat)) +geom_line() +
   geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
 ```
+```{r Cycle_25_Beyond.echo=TRUE}
+## Cycle 25 and Beyond
+forecast <- as.data.table(forecast)
+forecast1 <- forecast[ds >="2019-01-01"  &  ds <="2022-12-31",]
+ggplot(data=forecast1,aes(x=ds,y=yhat)) +geom_line() +
+  geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
+```
+```{r sidc-vs-kanzel}
+df2<-isn[Ymd >="1944-05-29" ,.(Ymd,Spots)]
+colnames(df2) <- c("ds","y")
+m <- prophet(seasonality.mode="multiplicative")
+m <- add_seasonality(m, name="cycle_11year", period=365.25 * 11,fourier.order=5)
+m <- fit.prophet(m, df2)
+future2 <- make_future_dataframe(m,periods=4000,freq="day")
+forecast2 <- predict(m, future2)
+plot(m, forecast2) +ggtitle("SIDC Sunspot Prediction: May. 1944 - May. 2022")
+```
+```{r}
+forecast2 <- as.data.table(forecast2)
+forecast2 <- forecast2[ds >="2019-01-01"  &  ds <="2022-12-31",]
+ggplot(data=forecast2,aes(x=ds,y=yhat)) +geom_line() +
+  geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
+```
+
