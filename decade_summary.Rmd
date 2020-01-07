@@ -11,7 +11,7 @@ library(tidyverse)
 library(data.table)
 library(prophet)
 ```
-```{r import_data,echo=TRUE}
+```{r import_sidc_data,echo=TRUE}
 rm(list=ls())
 ## Read Data: 
 isn <-fread("http://sidc.be/silso/DATA/SN_d_tot_V2.0.csv",sep=";")
@@ -21,6 +21,19 @@ isn$Ymd <- as.Date(paste(isn$Year, isn$Month,
                          isn$Day, sep = "-"))
 ## Add Yes and No counts.
 isn$Cts <- ifelse(isn$Spots <=0,"No","Yes")
+```
+```{r import_kanzel_data, echo=TRUE}
+kanzel <- fread("./kh_spots.csv")
+kanzel$Ymd <- as.Date(kanzel$Ymd)
+kanzel$Year <- year(kanzel$Ymd)
+kanzel$Month <- month(kanzel$Ymd)
+kanzel$Spots <- kanzel$s_n + kanzel$s_s
+kanzel$Groups <- kanzel$g_n + kanzel$g_s
+kanzel<-kanzel[,.(Ymd,Year,Month,R)]
+kanzel$Cts <- ifelse(kanzel$R <=0,"No","Yes")
+```
+
+```{r some_sidc_plots,echo=TRUE}
 ## Create Yes/No Chart by Year: Falim Ahmad
 data.frame(table(isn$Cts)) %>% 
   ggplot(aes(x=Var1,y=Freq,fill=Var1)) +
@@ -49,17 +62,17 @@ plot(m, forecast) +ggtitle("SIDC Sunspot Prediction: Jan. 1810 - May. 2022")
 ```
 ```{r Cycle_25_Beyond.echo=TRUE}
 ## Cycle 25 and Beyond
-forecast <- as.data.table(forecast)
-forecast1 <- forecast[ds >="2019-01-01"  &  ds <="2022-12-31",]
+forecast1 <- as.data.table(forecast)
+forecast1 <- forecast1[ds >="2019-01-01"  &  ds <="2022-12-31",]
 ggplot(data=forecast1,aes(x=ds,y=yhat)) +geom_line() +
   geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
 ```
 ```{r Cycle_25_Beyond.echo=TRUE}
 ## Cycle 25 and Beyond
-forecast <- as.data.table(forecast)
-forecast1 <- forecast[ds >="2019-01-01"  &  ds <="2022-12-31",]
-ggplot(data=forecast1,aes(x=ds,y=yhat)) +geom_line() +
-  geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
+# forecast <- as.data.table(forecast)
+# forecast1 <- forecast[ds >="2019-01-01"  &  ds <="2022-12-31",]
+# ggplot(data=forecast1,aes(x=ds,y=yhat)) +geom_line() +
+#   geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
 ```
 ```{r sidc-vs-kanzel}
 df2<-isn[Ymd >="1944-05-29" ,.(Ymd,Spots)]
@@ -73,8 +86,24 @@ plot(m, forecast2) +ggtitle("SIDC Sunspot Prediction: May. 1944 - May. 2022")
 ```
 ```{r}
 forecast2 <- as.data.table(forecast2)
-forecast2 <- forecast2[ds >="2019-01-01"  &  ds <="2022-12-31",]
+forecast2 <- forecast2[ds >="2020-01-01"  &  ds <="2022-12-31",]
 ggplot(data=forecast2,aes(x=ds,y=yhat)) +geom_line() +
   geom_smooth() +   ggtitle("SIDC: Cycle 25 and  Beyond: 2019 - 2022")
 ```
+```{r kanzel_prediction}
+df3<-kanzel[Ymd >="1944-05-29" ,.(Ymd,R)]
+colnames(df3) <- c("ds","y")
+m <- prophet(seasonality.mode="multiplicative")
+m <- add_seasonality(m, name="cycle_11year", period=365.25 * 11,fourier.order=5)
+m <- fit.prophet(m, df3)
+future3 <- make_future_dataframe(m,periods=4000,freq="day")
+forecast3 <- predict(m, future3)
+plot(m, forecast3) +ggtitle("Kanzel Sunspot Prediction: May. 1944 - May. 2022")
+```
+```{r}
+forecast3 <- as.data.table(forecast3)
+forecast3 <- forecast3[ds >="20020-01-01"  &  ds <="2022-12-31",]
+ggplot(data=forecast3,aes(x=ds,y=yhat)) +geom_line() +
+  geom_smooth() +   ggtitle("Kanzel: Cycle 25 and  Beyond: 2019 - 2022")
+``````
 
